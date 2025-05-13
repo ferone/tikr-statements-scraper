@@ -35,7 +35,7 @@ class TIKR:
         }
         self.column_names = keys.keys
         self.statements = keys.statements
-        self.content = {'income_statement': [], 'cashflow_statement': [], 'balancesheet_statement': []}
+        self.content = {s['statement']: [] for s in self.statements}
         if os.path.isfile('token.tmp'):
             with open('token.tmp', 'r') as f:
                 self.ACCESS_TOKEN = f.read()
@@ -92,7 +92,7 @@ class TIKR:
 
         for fiscalyear in response['dates']:
             fiscal_year_data = list(filter(lambda x: x['financialperiodid'] == fiscalyear['financialperiodid'], response['data']))
-            year_data = {'income_statement': {}, 'cashflow_statement': {}, 'balancesheet_statement': {}}
+            year_data = {s['statement']: {} for s in self.statements}
             for statement in self.statements:
                 ACCESS_DENIED = 0
                 data = year_data[statement['statement']]
