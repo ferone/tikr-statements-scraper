@@ -1,2 +1,2 @@
-TIKR_ACCOUNT_USERNAME = 'your_username'
-TIKR_ACCOUNT_PASSWORD = 'your_password'
+TIKR_ACCOUNT_USERNAME = 'macciss@hotmail.com'
+TIKR_ACCOUNT_PASSWORD = 'tikr35942000'

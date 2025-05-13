@@ -1,10 +1,10 @@
 import requests
 import json
 from seleniumwire import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.firefox.service import Service as FirefoxService
 import time
 import keys
 import pandas as pd
@@ -43,13 +43,13 @@ class TIKR:
             self.ACCESS_TOKEN = ''
 
     def getAccessToken(self):
-        chrome_options = Options()
-        chrome_options.add_argument("--headless")
-        user_agent = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.2 (KHTML, like Gecko) Chrome/22.0.1216.0 Safari/537.2'
-        chrome_options.add_argument(f'user-agent={user_agent}')
-        chrome_options.add_argument('window-size=1920x1080')
-        s = Service(ChromeDriverManager().install())
-        browser = webdriver.Chrome(service=s, options=chrome_options)
+        firefox_options = FirefoxOptions()
+        # firefox_options.add_argument("--headless")  # Disabled for debugging
+        user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0'
+        firefox_options.set_preference("general.useragent.override", user_agent)
+        firefox_options.add_argument('window-size=1920x1080')
+        s = FirefoxService(GeckoDriverManager().install())
+        browser = webdriver.Firefox(service=s, options=firefox_options)
         browser.get('https://app.tikr.com/login')
         browser.find_element(By.XPATH, '//input[@type="email"]').send_keys(self.username)
         browser.find_element(By.XPATH, '//input[@type="password"]').send_keys(self.password)
