@@ -16,3 +16,18 @@ console.warn: LoginRecipes: "Falling back to a synchronous message for: https://
 console.warn: FormAutofillSection: isRecordCreatable: Country not supported: undefined
 1747178434294	Marionette	INFO	Stopped listening on port 54007
 Dynamically enable window occlusion 1
+1747259971440	geckodriver	INFO	Listening on 127.0.0.1:56170
+1747259974505	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "window-size=1920x1080" "--remote-debugging ... " "--remote-allow-hosts" "localhost" "-no-remote" "-profile" "C:\\Users\\Ferone\\AppData\\Local\\Temp\\rust_mozprofileZDI1Yq"
+console.warn: services.settings: Ignoring preference override of remote settings server
+console.warn: services.settings: Allow by setting MOZ_REMOTE_SETTINGS_DEVTOOLS=1 in the environment
+Dynamically enable window occlusion 0
+1747259975002	Marionette	INFO	Marionette enabled
+1747259975152	Marionette	INFO	Listening on port 56194
+WebDriver BiDi listening on ws://127.0.0.1:56171
+Read port: 56194
+1747259975312	RemoteAgent	INFO	Proxy settings initialized: {"proxyType":"manual","httpProxy":"127.0.0.1:56174","sslProxy":"127.0.0.1:56174"}
+1747259975312	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://app.tikr.com."
+console.warn: FormAutofillSection: isRecordCreatable: Country not supported: undefined
+1747260042097	Marionette	INFO	Stopped listening on port 56194
+Dynamically enable window occlusion 1

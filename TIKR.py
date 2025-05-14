@@ -203,7 +203,10 @@ if __name__ == '__main__':
     for company in companies:
         scraper = TIKR()
         scraper.getFinancials(company[1], company[2])
-        filename = company[0] + '_' + datetime.datetime.now().strftime('%Y-%m-%d') + '.xlsx'
+        # Ensure Output/xlsx directory exists
+        output_dir = os.path.join('Output', 'xlsx')
+        os.makedirs(output_dir, exist_ok=True)
+        filename = os.path.join(output_dir, company[0] + '_' + datetime.datetime.now().strftime('%Y-%m-%d') + '.xlsx')
         scraper.export(filename)
         print(f'[ + ] {bcolors.OKGREEN}Exported{bcolors.ENDC}: {filename}')
 

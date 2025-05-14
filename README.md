@@ -10,6 +10,20 @@ TIKR among the best sites that provide tools for Stock Market Research and Inves
 - Python 3.x (Download: https://www.python.org/downloads/)
 - Libraries (`pip3 install -r requirements.txt`)
 
+#### Python Package Requirements
+The following packages are required (as listed in `requirements.txt`):
+
+```
+pandas==2.2.3
+numpy==2.2.0
+requests==2.26.0
+selenium==4.7.2
+selenium_wire==5.1.0
+webdriver_manager==3.5.1
+xlsxwriter==3.1.9
+blinker==1.6.3
+```
+
 ### Set up:
 - Clone the repository (`git clone https://github.com/membaby/tikr-statements-scraper`)
 - Update `config.py` file with your TIKR account credentials.
