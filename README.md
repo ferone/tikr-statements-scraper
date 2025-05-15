@@ -210,3 +210,305 @@ Full Time Employees
 
 ## Notes
 This software uses TIKR platform to fetch the data. It requires a paid membership in order to extract all historical data, although a free membership would work with restrictions. Find more information on [TIKR website](https://www.tikr.com).
+
+# ClickHouse Database for Stock Data
+
+## Why ClickHouse?
+ClickHouse is a high-performance, open-source columnar database management system well-suited for analytical workloads and large time-series datasets, such as 20+ years of stock data.
+
+## Schema Design
+
+### 1. Company Metadata Table
+Stores static or slowly-changing company info (from yfinance and enrich_with_exchange.py).
+
+```sql
+CREATE TABLE stockdb.companies
+(
+    symbol String,
+    shortName String,
+    longName String,
+    displayName String,
+    language String,
+    region String,
+    exchange String,
+    fullExchangeName String,
+    market String,
+    quoteType String,
+    typeDisp String,
+    exchangeTimezoneName String,
+    exchangeTimezoneShortName String,
+    gmtOffSetMilliseconds Int64,
+    marketState String,
+    messageBoardId String,
+    quoteSourceName String,
+    triggerable UInt8,
+    customPriceAlertConfidence Float32,
+    hasPrePostMarketData UInt8,
+    firstTradeDateMilliseconds Int64,
+    address1 String,
+    city String,
+    state String,
+    zip String,
+    country String,
+    phone String,
+    website String,
+    industry String,
+    industryKey String,
+    industryDisp String,
+    sector String,
+    sectorKey String,
+    sectorDisp String,
+    category String,
+    fundFamily String,
+    legalType String,
+    longBusinessSummary String,
+    fullTimeEmployees Int32,
+    -- ... (add all other YF_FIELDS as needed)
+    PRIMARY KEY (symbol)
+) ENGINE = MergeTree();
+```
+
+### 2. Financials Table (Time Series)
+Stores all yearly (or quarterly) values for each company, for all keys in keys.py.
+
+```sql
+CREATE TABLE stockdb.financials
+(
+    symbol String,
+    statement String,         -- e.g. 'income_statement', 'cashflow_statement', 'balancesheet_statement'
+    fiscal_year UInt16,
+    fiscal_period String,     -- e.g. 'FY', 'Q1', 'Q2', etc. (if you want quarterly granularity)
+    key String,               -- e.g. 'Net Income', 'Revenues', etc.
+    value Float64,
+    currency String DEFAULT 'USD',
+    updated_at DateTime DEFAULT now(),
+    PRIMARY KEY (symbol, statement, fiscal_year, key)
+) ENGINE = MergeTree()
+ORDER BY (symbol, statement, fiscal_year, key);
+```
+- This is a "long" format: each row is one value for one key, one year, one company.
+- You can also use a "wide" format (one row per year per company, with all keys as columns), but "long" is more flexible for analytics and schema changes.
+
+### 3. (Optional) Prices Table
+If you want to store daily/ohlc stock prices:
+
+```sql
+CREATE TABLE stockdb.prices
+(
+    symbol String,
+    date Date,
+    open Float64,
+    high Float64,
+    low Float64,
+    close Float64,
+    volume UInt64,
+    adj_close Float64,
+    PRIMARY KEY (symbol, date)
+) ENGINE = MergeTree()
+ORDER BY (symbol, date);
+```
+
+## Loading Data
+- Use the ClickHouse `clickhouse-client` or `clickhouse-copier` to bulk insert CSVs.
+- You can use Python's `clickhouse-connect` or `clickhouse-driver` to automate inserts from your scripts.
+
+## Schema Evolution
+- If you add new keys in `keys.py`, you just insert new rows with new `key` values—no schema migration needed.
+
+## Example Query
+Get Net Income for all companies in 2020:
+
+```sql
+SELECT symbol, value
+FROM stockdb.financials
+WHERE key = 'Net Income' AND fiscal_year = 2020
+```
+
+## Next Steps
+- Install ClickHouse (locally or in the cloud).
+- Create the tables above.
+- Write a Python script to read your CSVs and insert into ClickHouse.
+- (Optional) Set up views or materialized views for common analytics.
+
+If you want a sample Python loader script, let us know!
+
+# PostgreSQL Database for Stock Data
+
+## Why PostgreSQL?
+PostgreSQL is a robust, open-source relational database system, ideal for analytics and time-series data. It is widely supported and can be extended with features like TimescaleDB for even better time-series performance.
+
+## Schema Design
+
+### 1. Company Metadata Table
+Stores static or slowly-changing company info (from yfinance and enrich_with_exchange.py).
+
+```sql
+CREATE TABLE companies (
+    symbol TEXT PRIMARY KEY,
+    short_name TEXT,
+    long_name TEXT,
+    display_name TEXT,
+    language TEXT,
+    region TEXT,
+    exchange TEXT,
+    full_exchange_name TEXT,
+    market TEXT,
+    quote_type TEXT,
+    type_disp TEXT,
+    exchange_timezone_name TEXT,
+    exchange_timezone_short_name TEXT,
+    gmt_offset_milliseconds BIGINT,
+    market_state TEXT,
+    message_board_id TEXT,
+    quote_source_name TEXT,
+    triggerable BOOLEAN,
+    custom_price_alert_confidence REAL,
+    has_pre_post_market_data BOOLEAN,
+    first_trade_date_milliseconds BIGINT,
+    address1 TEXT,
+    city TEXT,
+    state TEXT,
+    zip TEXT,
+    country TEXT,
+    phone TEXT,
+    website TEXT,
+    industry TEXT,
+    industry_key TEXT,
+    industry_disp TEXT,
+    sector TEXT,
+    sector_key TEXT,
+    sector_disp TEXT,
+    category TEXT,
+    fund_family TEXT,
+    legal_type TEXT,
+    long_business_summary TEXT,
+    full_time_employees INTEGER
+    -- Add more fields as needed from YF_FIELDS
+);
+```
+
+### 2. Financials Table (Time Series)
+Stores all yearly (or quarterly) values for each company, for all keys in keys.py.
+
+```sql
+CREATE TABLE financials (
+    id SERIAL PRIMARY KEY,
+    symbol TEXT REFERENCES companies(symbol),
+    statement TEXT,         -- e.g. 'income_statement', 'cashflow_statement', 'balancesheet_statement'
+    fiscal_year INTEGER,
+    fiscal_period TEXT,     -- e.g. 'FY', 'Q1', 'Q2', etc. (if you want quarterly granularity)
+    key TEXT,               -- e.g. 'Net Income', 'Revenues', etc.
+    value DOUBLE PRECISION,
+    currency TEXT DEFAULT 'USD',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ON financials(symbol, statement, fiscal_year, key);
+```
+
+### 3. (Optional) Prices Table
+If you want to store daily/ohlc stock prices:
+
+```sql
+CREATE TABLE prices (
+    id SERIAL PRIMARY KEY,
+    symbol TEXT REFERENCES companies(symbol),
+    date DATE,
+    open DOUBLE PRECISION,
+    high DOUBLE PRECISION,
+    low DOUBLE PRECISION,
+    close DOUBLE PRECISION,
+    volume BIGINT,
+    adj_close DOUBLE PRECISION
+);
+CREATE INDEX ON prices(symbol, date);
+```
+
+---
+
+## Python Script to Load CSVs into PostgreSQL
+
+Install dependencies:
+```bash
+pip install psycopg2 pandas
+```
+
+Example loader script:
+```python
+import pandas as pd
+import psycopg2
+from psycopg2.extras import execute_values
+
+def load_companies(csv_path, conn):
+    df = pd.read_csv(csv_path)
+    cols = [
+        'symbol', 'shortName', 'longName', 'displayName', 'language', 'region', 'exchange',
+        'fullExchangeName', 'market', 'quoteType', 'typeDisp', 'exchangeTimezoneName',
+        'exchangeTimezoneShortName', 'gmtOffSetMilliseconds', 'marketState', 'messageBoardId',
+        'quoteSourceName', 'triggerable', 'customPriceAlertConfidence', 'hasPrePostMarketData',
+        'firstTradeDateMilliseconds', 'address1', 'city', 'state', 'zip', 'country', 'phone',
+        'website', 'industry', 'industryKey', 'industryDisp', 'sector', 'sectorKey', 'sectorDisp',
+        'category', 'fundFamily', 'legalType', 'longBusinessSummary', 'fullTimeEmployees'
+    ]
+    df = df.rename(columns={c: c.lower() for c in df.columns})
+    df = df.where(pd.notnull(df), None)
+    tuples = [tuple(x) for x in df[cols].to_numpy()]
+    query = f"INSERT INTO companies ({', '.join(cols)}) VALUES %s ON CONFLICT (symbol) DO NOTHING"
+    with conn.cursor() as cur:
+        execute_values(cur, query, tuples)
+    conn.commit()
+
+def load_financials(csv_path, conn):
+    df = pd.read_csv(csv_path)
+    cols = ['symbol', 'statement', 'fiscal_year', 'fiscal_period', 'key', 'value', 'currency']
+    df = df.where(pd.notnull(df), None)
+    tuples = [tuple(x) for x in df[cols].to_numpy()]
+    query = f"INSERT INTO financials ({', '.join(cols)}) VALUES %s"
+    with conn.cursor() as cur:
+        execute_values(cur, query, tuples)
+    conn.commit()
+
+if __name__ == "__main__":
+    conn = psycopg2.connect(
+        dbname="your_db", user="your_user", password="your_password", host="localhost", port=5432
+    )
+    load_companies('marketstack_all_tickers_enriched.csv', conn)
+    load_financials('your_financials.csv', conn)
+    conn.close()
+```
+- Adjust column names and file paths as needed.
+- For large files, consider chunking the CSVs.
+
+---
+
+## Example Views for Analytics
+
+### 1. View: Net Income by Year
+```sql
+CREATE OR REPLACE VIEW net_income_by_year AS
+SELECT symbol, fiscal_year, value AS net_income
+FROM financials
+WHERE key = 'Net Income';
+```
+
+### 2. View: Revenue Growth by Year
+```sql
+CREATE OR REPLACE VIEW revenue_growth AS
+SELECT symbol, fiscal_year, value AS revenue,
+       value - LAG(value) OVER (PARTITION BY symbol ORDER BY fiscal_year) AS revenue_growth
+FROM financials
+WHERE key = 'Revenues';
+```
+
+### 3. Materialized View: Top Companies by Net Income (2020)
+```sql
+CREATE MATERIALIZED VIEW top_net_income_2020 AS
+SELECT symbol, value AS net_income
+FROM financials
+WHERE key = 'Net Income' AND fiscal_year = 2020
+ORDER BY net_income DESC
+LIMIT 10;
+```
+
+---
+
+If you need more advanced analytics, TimescaleDB, or help with automation, let us know!
